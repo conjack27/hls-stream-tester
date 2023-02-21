@@ -1,7 +1,9 @@
 require("dotenv").config();
 const express = require("express");
-const app = express();
+const cors = require("cors");
 const mongoose = require("mongoose");
+
+const app = express();
 
 // Connect to MongoDB
 async function connectToDatabase() {
@@ -15,6 +17,14 @@ async function connectToDatabase() {
 
 connectToDatabase();
 
+// middleware
+app.use(express.json());
+
+app.use(
+    cors({
+        origin: "http://127.0.0.1:5500",
+    })
+);
 // Define a schema
 const videoURLSchema = new mongoose.Schema({
     videoURL: {
@@ -40,11 +50,35 @@ app.post("/", async (req, res) => {
     const videoURL = new VideoURL({
         videoURL: req.body.videoURL,
     });
+    console.log("NEw url added");
     try {
         const newVideoURL = await videoURL.save();
         res.status(201).json(newVideoURL);
     } catch (err) {
         res.status(400).json({ message: err.message });
+    }
+});
+
+app.get("/latest", async (req, res) => {
+    try {
+        const latestVideoURL = await VideoURL.findOne()
+            .sort({ _id: -1 })
+            .limit(1);
+        res.json(latestVideoURL);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.delete("/latest", async (req, res) => {
+    try {
+        const latestVideoURL = await VideoURL.findOneAndDelete(
+            {},
+            { sort: { createdAt: -1 } }
+        );
+        res.json(latestVideoURL);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 });
 
